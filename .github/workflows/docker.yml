@@ -14,36 +14,42 @@ jobs:
       contents: read
 
     steps:
+      # 1. Checkout the repo
       - name: Check out repository
         uses: actions/checkout@v3
 
+      # 2. Set up QEMU for multi-platform builds
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
+      # 3. Set up Docker Buildx
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # 4. Log in to GHCR using a PAT (recommended)
       - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_PAT }}  # Create a PAT with write:packages
 
+      # 5. Extract metadata (tags) for Docker
       - name: Extract Docker metadata
         id: meta
         uses: docker/metadata-action@v4
         with:
-          images: ghcr.io/${{ github.repository_owner }}/slimebot
+          images: ghcr.io/SajtosZsomle/slimebot
           tags: |
             type=ref,event=branch
             type=ref,event=pr
 
+      # 6. Build and push Docker image
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
         with:
           context: .
           platforms: linux/amd64,linux/arm64
-          push: true
+          push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
